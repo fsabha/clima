@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão do Tempo</title>
+    <style>
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #ff6f61;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        sabha {
+            color: #ff6f61;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ff6f61;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 90px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            float: left;
+        }
+
+        button {
+            width: 80px;
+            padding: 2px;
+            background-color: #ff6f61;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-sizing: border-box;
+            float: right;
+        }
+
+        button:hover {
+            background-color: #e65040;
+        }
+
+        #weatherForecast {
+            margin-top: 20px;
+        }
+
+        .forecast-item {
+            margin-top: 16px;
+            padding: 10px;
+            background-color: #ff6f613b;
+            border-radius: 5px;
+            margin-bottom: 3px;
+        }
+
+        .forecast-item h2 {
+            margin-bottom: 2px;
+            margin-top: -1px;
+            color: #333;
+        }
+
+        .forecast-item p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        #locationInfo {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #ff6f613b;
+            border-radius: 5px;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Previsão do Tempo</h1>
+        <label for="cityInput">Nome da cidade:</label>
+        <input type="text" id="cityInput">
+        <button onclick="getWeather()">Obter Previsão</button>
+        <div id="weatherForecast"></div>
+        <div id="locationInfo"></div>
+       
+    </div>
+
+    <script>
+
+
+        // Função para obter a previsão do tempo
+        function getWeather() {
+            const apiKey = 'e59e32dc7ec860487c57010b5953d9ac'; // Coloque sua chave de API da OpenWeatherMap aqui
+            const city = document.getElementById('cityInput').value;
+            const apiUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const forecast = data.list.filter(item => item.dt_txt.includes('12:00:00')); // Obter previsão para o meio-dia
+                    const weatherForecast = document.getElementById('weatherForecast');
+                    weatherForecast.innerHTML = '';
+
+                    // Criação do array de labels para o gráfico
+                    const labels = forecast.map(day => {
+                        const date = new Date(day.dt * 1000);
+                        return date.toLocaleDateString('pt-BR', { weekday: 'short' });
+                    });
+
+                    // Criação do array de temperaturas para o gráfico
+                    const temperatures = forecast.map(day => day.main.temp);
+
+                    // Criação do gráfico
+                    const chartCanvas = document.createElement('canvas');
+                    chartCanvas.id = 'temperatureChart';
+                    chartCanvas.width = 400;
+                    chartCanvas.height = 100;
+                    weatherForecast.appendChild(chartCanvas);
+
+                    const ctx = chartCanvas.getContext('2d');
+                    const temperatureChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Temperatura (°C)',
+                                data: temperatures,
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: false
+                                }
+                            }
+                        }
+                    });
+
+                    // Renderização da previsão do tempo com ícones
+                    forecast.forEach(day => {
+                        const date = new Date(day.dt * 1000);
+                        const dayOfMonth = date.getDate();
+                        const month = date.toLocaleDateString('pt-BR', { month: 'long' });
+                        const dayOfWeek = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+                        const temperature = day.main.temp;
+                        const description = day.weather[0].description;
+                        const windSpeed = day.wind.speed;
+                        const icon = day.weather[0].icon;
+                        const iconUrl = `https://openweathermap.org/img/wn/${icon}.png`;
+
+                        const forecastItem = document.createElement('div');
+                        forecastItem.classList.add('forecast-item');
+                        forecastItem.innerHTML = `
+                            <h2>${dayOfWeek}, ${dayOfMonth} de ${month} <img src="${iconUrl}" alt="${description}" style="vertical-align: middle;"> </h2>
+                            
+                            <p><strong>Condição:</strong> ${description}</p>
+                            <p><strong>Temperatura:</strong> ${temperature}°C</p>
+                            <p><strong>Velocidade do Vento:</strong> ${windSpeed} m/s</p>
+                        `;
+                        weatherForecast.appendChild(forecastItem);
+                    });
+
+                    const locationInfo = document.getElementById('locationInfo');
+                    const { lat, lon } = data.city.coord;
+                    const country = data.city.country;
+                    const population = data.city.population;
+                    locationInfo.innerHTML = `
+                        <h2 style="margin-top: 3px; margin-bottom: 5px;">Informações adicionais:</h2>
+                        <p style="margin-top: 3px; margin-bottom: 3px;"><strong>Latitude:</strong> ${lat}</p>
+                        <p style="margin-top: 3px; margin-bottom: 3px;"><strong>Longitude:</strong> ${lon}</p>
+                        <p style="margin-top: 3px; margin-bottom: 3px;"><strong>País:</strong> ${country}</p>
+                        <p style="margin-top: 3px; margin-bottom: 3px;"><strong>População Aproximada:</strong> ${population}</p>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Erro ao obter a previsão do tempo:', error);
+                });
+        }
+    </script>
+</body>
+</html>
